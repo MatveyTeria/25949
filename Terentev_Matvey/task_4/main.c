@@ -7,6 +7,7 @@
 typedef struct node{
     char *str;
     struct node *next;
+    struct node *prev;
 } Node;
 
 typedef struct {
@@ -18,6 +19,7 @@ void push(List *list, const char *str){
     Node *temp = (Node*)malloc(sizeof(Node));
     temp->str = (char*)malloc(strlen(str) + 1);
     temp->next = NULL;
+    temp->prev = list->tail;
     strcpy(temp->str, str);
     if (list->tail == NULL){
         list->tail = temp;
@@ -29,7 +31,7 @@ void push(List *list, const char *str){
 }
 
 void print_list(List *list) {
-    for (Node *cur = list->head; cur != NULL; cur = cur->next) {
+    for (Node *cur = list->tail; cur != NULL; cur = cur->prev) {
         printf("%s", cur->str);
     }
 }

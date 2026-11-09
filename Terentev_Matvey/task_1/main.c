@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <pwd.h>
+#include <limits.h>
 #include <grp.h>
 #include <string.h>
 #include <errno.h>
@@ -21,7 +23,8 @@ enum action_type {
     ACT_CHANGE_CORE,
     ACT_PRINT_CWD,
     ACT_PRINT_ENV,
-    ACT_SET_ENV
+    ACT_SET_ENV,
+    ACT_PRINT_TIME
 };
 
 struct action {
@@ -135,12 +138,11 @@ void do_change_core(char *arg) {
 }
 
 void do_print_cwd() {
-    char *cwd = getcwd(NULL, 0);
-    if (cwd == NULL) {
+    char buffer[PATH_MAX];
+    if (getcwd(buffer, sizeof(buffer)) == NULL) {
         perror("getcwd");
     } else {
-        printf("Current working directory: %s\n", cwd);
-        free(cwd);
+        printf("Current working directory: %s\n", buffer);
     }
 }
 
@@ -179,9 +181,20 @@ void do_set_env(char *arg) {
     }
 }
 
+void do_print_california_time() {
+    setenv("TZ", "America/Los_Angeles", 1);
+    tzset();
+    time_t now;
+    time(&now);
+
+    struct tm *sp = localtime(&now);
+    printf("California time: %s", asctime(sp));
+
+}
+
 int main(int argc, char *argv[]) {
     int opt;
-    const char *optstring = ":ispuU:cC:dvV:";
+    const char *optstring = ":ispuU:cC:dvV:t";
 
     while ((opt = getopt(argc, argv, optstring)) != -1) {
         switch (opt) {
@@ -214,6 +227,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'V':
                 add_action(ACT_SET_ENV, optarg);
+                break;
+            case 't':
+                add_action(ACT_PRINT_TIME, NULL);
                 break;
             case ':':
                 fprintf(stderr, "Option -%c requires an argument.\n", optopt);
@@ -257,6 +273,9 @@ int main(int argc, char *argv[]) {
                 break;
             case ACT_SET_ENV:
                 do_set_env(actions[i].arg);
+                break;
+            case ACT_PRINT_TIME:
+                do_print_california_time();
                 break;
         }
     }

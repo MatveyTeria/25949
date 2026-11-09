@@ -4,6 +4,7 @@
 #include <cerrno>
 #include <csignal>
 #include <vector>
+#include <cctype>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -23,6 +24,18 @@ static void on_alarm(int)
     g_timeout = 1;
 }
 
+static bool is_blank(const char* s, size_t len)
+{
+    for (size_t i = 0; i < len; ++i) {
+        unsigned char c = static_cast<unsigned char>(s[i]);
+        if (c == '\r')
+            continue;
+        if (!std::isspace(c))
+            return false;
+    }
+    return true;
+}
+
 static std::vector<LineInfo> build_table(const char* data, size_t size)
 {
     std::vector<LineInfo> table;
@@ -30,6 +43,10 @@ static std::vector<LineInfo> build_table(const char* data, size_t size)
 
     for (size_t i = 0; i < size; ++i) {
         if (data[i] == '\n') {
+            if (is_blank(data, i - line_start)) {
+                line_start = i + 1;
+                continue;
+            }
             table.push_back({ static_cast<off_t>(line_start), i - line_start });
             line_start = i + 1;
         }
